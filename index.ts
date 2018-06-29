@@ -22,9 +22,8 @@ interface Img {
 		process.env["NODE_ENV"] === "PROD"
 			? await askParams()
 			: {
-					url:
-						"https://medium.com/s/story/what-good-are-business-schools-anyway-f5c399d916ef",
-					dir: "./output2/"
+					url: "https://google.com/",
+					dir: "./output/"
 			  }
 
 	puppeteer
@@ -35,22 +34,27 @@ interface Img {
 			const page = await browser.newPage()
 			const { url, dir } = input
 			await page.setViewport({ width: 1280, height: 800 })
-			await page.goto(url, { waitUntil: "networkidle0" })
-				.catch(err => {
-					console.error(chalk.redBright(`Navigation failed: ${err.message}`))
-				})
+			await page.goto(url, { waitUntil: "networkidle2" }).catch(err => {
+				console.error(chalk.redBright(`Navigation failed: ${err.message}`))
+			})
 
 			const urls: Img[] = await page
 				.evaluate(getUrls)
 				.then(vs => vs.map(processUrl).filter((v: any) => v.content && v.type))
-			console.info(`I've retrived ${urls.length} urls`)
+			console.dir(urls, { colors: true })
+			console.info(`I've retrieved ${urls.length} urls`)
+
+			debugger
 			await saveImages(urls, dir)
 			await browser.close()
 		})
 
 	function saveImages(urls: Img[], dir: string) {
 		urls.forEach(({ content, type }) => {
-			const name = /.{28}$/.exec(content) || /.{8}$/.exec(content)
+			const name =
+				/.{36}$/.exec(content) ||
+				/.{26}$/.exec(content) ||
+				/.{8}$/.exec(content)
 			if (name)
 				saveImg(dir, content, name[0], type)
 					.then((res: string) => {
@@ -75,16 +79,30 @@ interface Img {
 
 			const fromStyle = [...document.querySelectorAll("[style*='url(']")]
 				.map(getAttributeValue("style"))
-				// @ts-ignore
 				.map(style => {
 					const exec = /url\(["'](.*)["']\)/.exec(style)
 					return exec ? exec[1] : ""
 				})
 
-			const urls = fromSrc
-				.concat(fromStyle)
+			const urls = [...fromSrc, ...fromStyle]
 				.filter(Boolean)
-				.reduce((acc, v) => acc.concat(v), [])
+				.map((url: string) => {
+					if (/^https?.*/.test(url) || /www\..*/.test(url)) {
+						return url
+					} else {
+						const exec = /(^\/.*)/.exec(url)
+						return exec ? location.origin + exec[1] : url
+					}
+				})
+				.map((url: string) => {
+					const exec = /^(.*)\?.*/.exec(url) // Remove req params after "?"
+					return exec ? exec[1] : url
+				})
+				.filter(Boolean)
+				.reduce((acc: any[], v) => acc.concat(v), [])
+				.filter((potencialCopy: string, i: number, arr: string[]) => 
+					!arr.some((url: string, j: number) => url === potencialCopy && i !== j)
+				)
 			return urls
 		})
 	}

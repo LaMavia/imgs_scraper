@@ -5,8 +5,8 @@
     https://i.ytimg.com/vi/fDAWRV02gDw/hqdefault.jpg?sqp=-oaymwEYCNIBEHZIVfKriqkDCwgBFQAAiEIYAXAB&rs=AOn4CLAroDOcVDyb0_mWXjQZhAjIP2BqnQ
 */
 interface Img {
-  content: string | null
-  type: string | null
+  content: string
+  type: string
 }
 
 const regexps = {
@@ -19,7 +19,7 @@ const regexps = {
 }
 
 export default (url: string) => {
-  const output: Img = {content: null, type: 'jpeg'}
+  const output: Img = {content: "", type: 'jpeg'}
 
   if(regexps.BASE64.exec(url)) {
     output.content = url
@@ -40,10 +40,10 @@ export default (url: string) => {
   if(regexps.HTTPS_WITH_SLASHES.exec(url) && !output.content) {
     output.content = url
   }
-  else if(regexps.DOUBLE_SLASH.exec(url) && !output.content) {
-    output.content = url.slice(2)// `https:${url}`
+  if(regexps.DOUBLE_SLASH.exec(url) ) {// && !output.content
+    output.content = `https:${url}` // url.slice(2)// `https:${url}`
   } else if(regexps.SINGLE_SLASH.exec(url) && !output.content) {
-    output.content = `https:/${url}`
+    output.content = `https://${url}`
   }
   return output
 }
