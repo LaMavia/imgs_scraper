@@ -5,14 +5,21 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node ./index.ts"
+    "start": "cross-env NODE_ENV=PROD ts-node ./index.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.2",
+    "ascii-art": "^1.4.3",
+    "chalk": "^2.4.1",
+    "clear": "^0.1.0",
+    "clui": "^0.3.6",
+    "configstore": "^3.1.2",
+    "cross-env": "^5.2.0",
+    "figlet": "^1.2.0",
     "fs-extra": "^6.0.1",
-    "node-fetch": "^2.1.2",
+    "inquirer": "^6.0.0",
+    "minimist": "^1.2.0",
     "puppeteer": "^1.5.0",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
@@ -20,9 +27,10 @@
     "typescript": "^2.9.2"
   },
   "devDependencies": {
-    "@types/cheerio": "^0.22.8",
+    "@types/configstore": "^2.1.1",
     "@types/fs-extra": "^5.0.3",
-    "@types/node-fetch": "^2.1.1",
+    "@types/inquirer": "0.0.42",
+    "@types/minimist": "^1.2.0",
     "@types/puppeteer": "^1.5.0",
     "@types/request": "^2.47.1",
     "@types/request-promise-native": "^1.0.15"

@@ -11,8 +11,8 @@ interface Img {
 
 const regexps = {
   BASE64: /data:image\/(jpg|jpeg|png|gif)/,
-  TYPE_MID: /\.(jpg|jpeg|png).*/,
-  TYPE_END: /\.(jpg|jpeg|png)$/,
+  TYPE_MID: /\.(jpg|jpeg?|png).*/,
+  TYPE_END: /\.(jpg|jpeg?|png)$/,
   DOUBLE_SLASH: /^\/\/\w*/,
   SINGLE_SLASH: /^\/\w*/,
   HTTPS_WITH_SLASHES: /^https:\/\//,
@@ -27,10 +27,11 @@ export default (url: string) => {
     output.type = regexps.BASE64.exec(url)[1]
   }
   if(regexps.TYPE_MID.exec(url)) { 
+    const exec = regexps.TYPE_MID.exec(url)
     // @ts-ignore
-    output.content = url.slice(0, regexps.TYPE_MID.exec(url).index + 4)
+    output.content = url.slice(0, exec.index + exec[1].length + 1)
     // @ts-ignore
-    output.type = regexps.TYPE_MID.exec(url)[1]
+    output.type = exec[1]
   }
   else if(regexps.TYPE_END.exec(url)) {
     // @ts-ignore
@@ -40,7 +41,7 @@ export default (url: string) => {
     output.content = url
   }
   else if(regexps.DOUBLE_SLASH.exec(url) && !output.content) {
-    output.content = `https:${url}`
+    output.content = url.slice(2)// `https:${url}`
   } else if(regexps.SINGLE_SLASH.exec(url) && !output.content) {
     output.content = `https:/${url}`
   }

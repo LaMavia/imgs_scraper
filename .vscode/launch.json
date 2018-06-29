@@ -9,6 +9,7 @@
       "type": "node",
       "request": "launch",
       "name": "Typescript",
+      "envFile": "${workspaceFolder}/dev.env",
       "runtimeArgs": [
         "-r",
         "ts-node/register"

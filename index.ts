@@ -1,52 +1,91 @@
 import puppeteer from "puppeteer"
-import processUrl from './processUrl'
-// import p from "child_process"
+import processUrl from "./processUrl"
 import saveImg from "./saveImg"
-// import cheerio from "cheerio"
-// const withColor = (x: any) => console.dir(x, {colors: true})
+import composeArgs from "./composeArgs"
+
+import chalk from "chalk"
+// @ts-ignore
+import figlet from "figlet"
+import { askParams } from "./helpers/askQuestions"
 
 interface Img {
-  content: string | null
-  type: string | null
+	content: string
+	type: string
 }
 
-puppeteer
-	.launch({
-		headless: false
-	})
-	.then(async browser => {
-		const page = await browser.newPage()
-		const href = "https://www.google.com/search?q=doge&source=lnms&tbm=isch&sa=X&ved=0ahUKEwi31IvR9vbbAhXEb1AKHTSKD4oQ_AUICigB&biw=1920&bih=967"
-		await page.setViewport({ width: 1280, height: 800 })
-		await page.goto(href, { waitUntil: "networkidle0" })
-		const urls: Img[] = await page.evaluate(
-			(selector: string, attrs: string[], _type: string) => {
-				const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
-				window.scrollBy(0, window.innerHeight * 6)
-				return wait(3000).then(() => {
-					const vs = [...document.querySelectorAll(selector)]
-						.map(v =>
-							// @ts-ignore
-							attrs.map(attr => (v.attributes[attr] ? v.attributes[attr].value : "")) // Get values of specified attributes
-						).reduce((acc, v) => acc.concat(v), [])
-					return vs
-				})
-			}, "img", ["src"], "url")
-				.then(vs => 
-					vs.map(processUrl)
-						.filter((v: any) => v.content && v.type)
-				)
-		console.info("Here are the urls I've retrived: ")
-		console.dir(urls, {
-			colors: true
-    })
-    console.info(`I've retrived ${urls.length} urls`)
-		urls.forEach(({content, type}) => {
-			// @ts-ignore
-			const name = /.{28}$/.exec(content) || /.{8}$/.exec(content)
-			debugger
-			// @ts-ignore
-			if(name) saveImg(content, name[0], type)
+;(async function wrapper() {
+	console.clear()
+	console.log(
+		chalk.green(figlet.textSync("Img Scraper", { horizontalLayout: "full" }))
+	)
+	const input =
+		process.env["NODE_ENV"] === "PROD"
+			? await askParams()
+			: {
+					url:
+						"https://medium.com/s/story/what-good-are-business-schools-anyway-f5c399d916ef",
+					dir: "./output2/"
+			  }
+
+	puppeteer
+		.launch({
+			headless: true
 		})
-		await browser.close()
-	})
+		.then(async browser => {
+			const page = await browser.newPage()
+			const { url, dir } = input
+			await page.setViewport({ width: 1280, height: 800 })
+			await page.goto(url, { waitUntil: "networkidle0" })
+				.catch(err => {
+					console.error(chalk.redBright(`Navigation failed: ${err.message}`))
+				})
+
+			const urls: Img[] = await page
+				.evaluate(getUrls)
+				.then(vs => vs.map(processUrl).filter((v: any) => v.content && v.type))
+			console.info(`I've retrived ${urls.length} urls`)
+			await saveImages(urls, dir)
+			await browser.close()
+		})
+
+	function saveImages(urls: Img[], dir: string) {
+		urls.forEach(({ content, type }) => {
+			const name = /.{28}$/.exec(content) || /.{8}$/.exec(content)
+			if (name)
+				saveImg(dir, content, name[0], type)
+					.then((res: string) => {
+						console.log(chalk.blueBright(res))
+					})
+					.catch((err: string) => {
+						console.log(chalk.redBright(err))
+					})
+		})
+	}
+
+	function getUrls(): Promise<string[]> {
+		const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
+		const getAttributeValue = (attr: string) => (v: any) =>
+			v.attributes[attr] ? v.attributes[attr].value : ""
+
+		window.scrollBy(0, window.innerHeight * 6)
+		return wait(1000).then(() => {
+			const fromSrc = [...document.querySelectorAll("img[src]")].map(
+				getAttributeValue("src")
+			)
+
+			const fromStyle = [...document.querySelectorAll("[style*='url(']")]
+				.map(getAttributeValue("style"))
+				// @ts-ignore
+				.map(style => {
+					const exec = /url\(["'](.*)["']\)/.exec(style)
+					return exec ? exec[1] : ""
+				})
+
+			const urls = fromSrc
+				.concat(fromStyle)
+				.filter(Boolean)
+				.reduce((acc, v) => acc.concat(v), [])
+			return urls
+		})
+	}
+})()

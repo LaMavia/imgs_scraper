@@ -1,13 +1,14 @@
 import request from "request-promise-native"
 import fs from "fs-extra"
 import path from "path"
+import { currentDir } from "./helpers/files"
 
-export default (url: string, outputName: string, ext: string) =>
+export default (dir: string, url: string, outputName: string, ext: string): Promise<string> =>
 	new Promise((resolve, reject) => {
 		const outputPath = path.resolve(
 			__dirname,
-			"output",
-			`${outputName.replace(/(\/|\.|=)*/g, "_")}.${ext}`
+			dir,
+			`${outputName.replace(/(\/|\.|=|\*)*/g, "")}.${ext}`
 		)
 		// Handle Base64
 		if(/data:image/.test(url)) {
@@ -16,39 +17,33 @@ export default (url: string, outputName: string, ext: string) =>
 			})
 			.then(_ => {
 				const msg = `saved to: ${outputPath}`
-				console.info(msg)
 				resolve(msg)
 			})
 			.catch(err => {
 				const msg = `Error saving file: ${err}`
-				console.error(msg)
 				reject(msg)
 			})
 		}
 		else {
 		// Handle from url
-		request(url, {
+		request({
+			uri: url,
 			encoding: "binary"
 		})
 			.then(v => {
-        debugger
-				return fs
-					.writeFile(outputPath, v, {
+				return fs.writeFile(outputPath, v, {
 						encoding: "binary"
 					})
 					.then(_ => {
 						const msg = `saved to: ${outputPath}`
-						console.info(msg)
 						resolve(msg)
 					})
 					.catch(err => {
 						const msg = `Error saving file: ${err}`
-						console.error(msg)
 						reject(msg)
 					})
 			})
 			.catch(err => {
-				console.error(`${err.statusCode || err} : ${url || outputName}`)
-				reject(err.statusCode)
+				reject(`${err.statusCode || err} : ${url || outputName}`)
 			})
 	}})
